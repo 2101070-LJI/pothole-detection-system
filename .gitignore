@@ -1,0 +1,64 @@
+# 환경 변수 (민감 정보)
+.env
+*.env
+
+# 모델 파일 (대용량)
+*.pt
+*.pth
+*.onnx
+*.xml
+*.bin
+models/
+!models/.gitkeep
+
+# 미디어 파일 (대용량)
+*.mp4
+*.avi
+*.mov
+*.jpg
+*.jpeg
+*.png
+*.gif
+shared_images/
+!shared_images/.gitkeep
+
+# 임시 파일
+temp/
+!temp/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 로그
+*.log
+logs/
+
+# DB 볼륨
+postgres_data/
+
+# Cloudflare/ngrok 인증 파일
+cloudflared/credentials.json
+cloudflared/cert.pem
+cloudflared/ngrok.yml
+cloudflared/cloudflared/credentials.json
+cloudflared/cloudflared/cert.pem
+cloudflared/cloudflared/ngrok.yml
+
+# 처리된 결과 파일
+processed_videos.json
+ai-core/processed_videos.json
+
+# 압축 파일
+*.zip
+
+# OS
+.DS_Store
+Thumbs.db
