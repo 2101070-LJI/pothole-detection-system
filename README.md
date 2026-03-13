@@ -12,13 +12,14 @@ YOLOv8 커스텀 모델로 비디오에서 포트홀을 탐지하고, Intel NPU/
 - [시스템 아키텍처](#시스템-아키텍처)
 - [포트홀 탐지 파이프라인](#포트홀-탐지-파이프라인)
 - [데이터 흐름](#데이터-흐름)
+- [자동 파인튜닝 스케줄](#자동-파인튜닝-스케줄)
+- [위험도 분류 기준](#위험도-분류-기준)
 - [기술 스택](#기술-스택)
 - [사전 요구사항](#사전-요구사항)
 - [빠른 시작](#빠른-시작)
 - [환경 변수 설정](#환경-변수-설정)
 - [프로젝트 구조](#프로젝트-구조)
 - [API 레퍼런스](#api-레퍼런스)
-- [문서](#문서)
 
 ---
 
@@ -42,54 +43,47 @@ YOLOv8 커스텀 모델로 비디오에서 포트홀을 탐지하고, Intel NPU/
 
 ```mermaid
 graph TB
-    subgraph USER["👤 사용자"]
-        Browser["브라우저"]
-    end
+    Browser["🌐 브라우저"]
 
     subgraph DOCKER["🐳 Docker Compose"]
-        subgraph WEB["Container 1: web-server"]
-            Apache["Apache\n리버스 프록시\n:80"]
-        end
+        direction TB
+        Apache["Apache 리버스 프록시\n:80"]
 
         subgraph DASH["Container 2: dashboard"]
-            Streamlit["Streamlit\n대시보드\n:8501"]
-            Gemini["Gemini AI\n요약/챗봇"]
-            Streamlit --> Gemini
+            Streamlit["Streamlit 대시보드\n:8501"]
+            Gemini["Gemini AI 요약/챗봇"]
         end
 
         subgraph AI["Container 3: ai-core"]
-            YOLO["YOLOv8\n포트홀 탐지"]
-            Kakao["카카오 맵\nAPI 연동"]
-            Scheduler["APScheduler\n자동 파인튜닝"]
-            YOLO --> Kakao
+            YOLO["YOLOv8 포트홀 탐지"]
+            Kakao["카카오 맵 API"]
+            Scheduler["APScheduler 파인튜닝"]
         end
 
-        subgraph DB["Container 4: db"]
-            Postgres[("PostgreSQL\n:5432")]
-        end
-
-        subgraph TUNNEL["Container 5: cloudflared"]
-            Ngrok["ngrok 터널\n외부 URL 생성"]
-        end
+        Postgres[("PostgreSQL :5432")]
+        Ngrok["ngrok 터널"]
     end
 
     subgraph HOST["🖥️ Windows Host"]
-        NPU["NPU Worker\nnpu_worker.py\n:9001"]
+        NPU["NPU Worker :9001"]
         DepthModel["Depth Anything V2\nOpenVINO IR"]
         NPU --> DepthModel
     end
 
-    Browser -->|"HTTP"| Apache
-    Apache -->|"프록시"| Streamlit
-    Streamlit -->|"데이터 조회"| Postgres
-    AI -->|"탐지 결과 저장"| Postgres
-    YOLO -->|"깊이 검증 요청\nHTTP :9001"| NPU
-    NPU -->|"depth_ratio 반환"| YOLO
-    Ngrok -->|"외부 노출"| Apache
+    Browser -->|HTTP| Apache
+    Apache --> Streamlit
+    Streamlit --> Gemini
+    Streamlit -->|데이터 조회| Postgres
+    YOLO -->|결과 저장| Postgres
+    YOLO -->|깊이 검증 요청| NPU
+    NPU -->|depth_ratio| YOLO
+    YOLO --> Kakao
+    Ngrok -->|외부 노출| Apache
 
     style DOCKER fill:#e3f2fd,stroke:#1565c0
     style HOST fill:#fce4ec,stroke:#c62828
-    style USER fill:#e8f5e9,stroke:#2e7d32
+    style DASH fill:#e8f5e9,stroke:#388e3c
+    style AI fill:#fff3e0,stroke:#f57c00
 ```
 
 ---
@@ -98,21 +92,21 @@ graph TB
 
 ```mermaid
 flowchart TD
-    A([🎬 비디오 입력]) --> B[프레임 추출\nOpenCV]
-    B --> C{YOLOv8\n포트홀 탐지}
+    A([비디오 입력]) --> B[프레임 추출 - OpenCV]
+    B --> C{YOLOv8 포트홀 탐지}
     C -->|탐지 없음| D([다음 프레임])
-    C -->|포트홀 감지| E[바운딩 박스\n크롭]
+    C -->|포트홀 감지| E[바운딩 박스 크롭]
     E --> F[NPU Worker 호출\nDepth Anything V2]
-    F --> G{depth_ratio\n계산}
-    G -->|< 0.1\n얕음| H[LOW RISK\n저위험]
-    G -->|0.1 ~ 0.3\n중간| I[MEDIUM RISK\n중위험]
-    G -->|> 0.3\n깊음| J[HIGH RISK\n고위험]
-    H --> K[카카오 맵 API\n좌표 → 주소 변환]
+    F --> G{depth_ratio 계산}
+    G -->|"< 0.1 얕음"| H[LOW RISK 저위험]
+    G -->|"0.1 ~ 0.3 중간"| I[MEDIUM RISK 중위험]
+    G -->|"> 0.3 깊음"| J[HIGH RISK 고위험]
+    H --> K[카카오 맵 API - 주소 변환]
     I --> K
     J --> K
-    K --> L[(PostgreSQL\n결과 저장)]
-    L --> M[Streamlit\n대시보드 표시]
-    M --> N[Gemini AI\n리포트 요약]
+    K --> L[(PostgreSQL 저장)]
+    L --> M[Streamlit 대시보드]
+    M --> N[Gemini AI 리포트 요약]
 
     style A fill:#4CAF50,color:#fff
     style J fill:#f44336,color:#fff
@@ -127,13 +121,13 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-    participant V as 📹 비디오
-    participant AI as 🤖 AI Core
-    participant NPU as ⚡ NPU Worker
-    participant Kakao as 🗺️ 카카오 맵
-    participant DB as 🗄️ PostgreSQL
-    participant Dash as 📊 대시보드
-    participant Gemini as 🧠 Gemini AI
+    participant V as 비디오
+    participant AI as AI Core
+    participant NPU as NPU Worker
+    participant Kakao as 카카오 맵
+    participant DB as PostgreSQL
+    participant Dash as 대시보드
+    participant Gemini as Gemini AI
 
     V->>AI: 프레임 스트림
     AI->>AI: YOLOv8 포트홀 탐지
@@ -142,7 +136,7 @@ sequenceDiagram
     NPU-->>AI: depth_ratio 반환
     AI->>Kakao: GPS 좌표 전송
     Kakao-->>AI: 도로 주소 반환
-    AI->>DB: 탐지 결과 저장\n(위치, 위험도, 이미지)
+    AI->>DB: 탐지 결과 저장
     Dash->>DB: 데이터 조회
     DB-->>Dash: 탐지 목록 반환
     Dash->>Gemini: 탐지 요약 요청
@@ -155,10 +149,10 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A([매일 자정 UTC]) --> B{누적 이미지\n≥ 100장?}
+    A([매일 자정 UTC]) --> B{"누적 이미지\n100장 이상?"}
     B -->|No| C([대기])
     B -->|Yes| D[기존 모델 백업]
-    D --> E[YOLOv8 파인튜닝\n새 데이터로 학습]
+    D --> E[YOLOv8 파인튜닝]
     E --> F{성능 향상?}
     F -->|Yes| G[새 모델 배포]
     F -->|No| H[백업 모델 복원]
@@ -177,8 +171,8 @@ flowchart LR
 ```mermaid
 graph LR
     subgraph INPUT["depth_ratio 범위"]
-        A["0.0 ~ 0.1\n(매우 얕음)"]
-        B["0.1 ~ 0.3\n(중간 깊이)"]
+        A["0.0 ~ 0.1\n(얕음)"]
+        B["0.1 ~ 0.3\n(중간)"]
         C["0.3 이상\n(깊음)"]
     end
 
@@ -319,7 +313,7 @@ KAKAO_MAP_APP_KEY=your_kakao_map_app_key_here
 pothole-detection-system/
 ├── ai-core/                    # AI 엔진 컨테이너
 │   ├── main.py                 # 메인 처리 서버 (YOLOv8 탐지 + APScheduler)
-│   ├── synthetic_pothole_generator.py  # 합성 데이터 생성
+│   ├── synthetic_pothole_generator.py
 │   ├── models/                 # YOLOv8 모델 (best2.pt 배치)
 │   ├── videos/                 # 입력 비디오
 │   └── Dockerfile
@@ -341,8 +335,6 @@ pothole-detection-system/
 ├── cloudflared/                # ngrok 터널 컨테이너
 │   ├── config.yml
 │   └── Dockerfile
-├── inference-container/        # 2컨테이너 구조 대안 (ai-core 대체)
-├── lamp-container/             # 2컨테이너 구조 대안 (apache+dashboard 통합)
 ├── npu_worker.py               # Intel NPU 깊이 추정 HTTP 서버
 ├── slm_npu_worker_phi3.py      # Phi-3 LLM 워커 (OpenVINO GenAI)
 ├── docker-compose.yml          # 메인 5컨테이너 구성
@@ -381,21 +373,6 @@ curl -X POST http://localhost:9001/depth \
   "depth_max": 1.0
 }
 ```
-
----
-
-## 문서
-
-| 문서 | 설명 |
-|------|------|
-| [QUICK_START.md](QUICK_START.md) | 빠른 시작 가이드 |
-| [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) | 인증 시스템 설정 |
-| [FINETUNING_GUIDE.md](FINETUNING_GUIDE.md) | 모델 파인튜닝 가이드 |
-| [SYNTHETIC_POTHOLES_GUIDE.md](SYNTHETIC_POTHOLES_GUIDE.md) | 합성 데이터 생성 |
-| [RISK_PRIORITY_SYSTEM.md](RISK_PRIORITY_SYSTEM.md) | 위험도 분류 기준 |
-| [CLOUDFLARE_TUNNEL_SETUP.md](CLOUDFLARE_TUNNEL_SETUP.md) | 외부 터널 설정 |
-| [PHI3_OPENVINO_SETUP.md](PHI3_OPENVINO_SETUP.md) | Phi-3 모델 설치 |
-| [OVERFITTING_PREVENTION.md](OVERFITTING_PREVENTION.md) | 오버피팅 방지 가이드 |
 
 ---
 
