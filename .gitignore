@@ -5,11 +5,20 @@
 # 모델 파일 (대용량)
 *.pt
 *.pth
-*.onnx
-*.xml
-*.bin
-models/
+models/llm/
 !models/.gitkeep
+!models/llm/.gitkeep
+
+# OpenVINO 모델 바이너리 (대용량)
+*.bin
+*.onnx
+# XML은 설정파일이므로 허용 (단, OpenVINO 모델 XML 제외)
+openvino_model.xml
+openvino_model.bin
+openvino_tokenizer.bin
+openvino_tokenizer.xml
+openvino_detokenizer.bin
+openvino_detokenizer.xml
 
 # 미디어 파일 (대용량)
 *.mp4
@@ -44,21 +53,23 @@ logs/
 # DB 볼륨
 postgres_data/
 
-# Cloudflare/ngrok 인증 파일
+# ngrok/Cloudflare 인증 파일
 cloudflared/credentials.json
 cloudflared/cert.pem
 cloudflared/ngrok.yml
-cloudflared/cloudflared/credentials.json
-cloudflared/cloudflared/cert.pem
-cloudflared/cloudflared/ngrok.yml
+ngrok.yml
 
-# 처리된 결과 파일
+# 런타임 데이터
 processed_videos.json
-ai-core/processed_videos.json
+video_results/
 
-# 압축 파일
-*.zip
+# HuggingFace 캐시
+.cache/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/

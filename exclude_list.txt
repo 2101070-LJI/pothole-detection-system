@@ -1,9 +1,0 @@
-__pycache__
-.git
-node_modules
-.pytest_cache
-.mypy_cache
-.venv
-venv
-env
-backup_*
