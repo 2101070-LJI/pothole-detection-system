@@ -47,10 +47,10 @@ graph TB
 
     subgraph DOCKER["🐳 Docker Compose"]
         direction TB
-        Apache["Apache 리버스 프록시\n:80"]
+        Apache["Apache 리버스 프록시 :80"]
 
         subgraph DASH["Container 2: dashboard"]
-            Streamlit["Streamlit 대시보드\n:8501"]
+            Streamlit["Streamlit 대시보드 :8501"]
             Gemini["Gemini AI 요약/챗봇"]
         end
 
@@ -66,7 +66,7 @@ graph TB
 
     subgraph HOST["🖥️ Windows Host"]
         NPU["NPU Worker :9001"]
-        DepthModel["Depth Anything V2\nOpenVINO IR"]
+        DepthModel["Depth Anything V2 - OpenVINO IR"]
         NPU --> DepthModel
     end
 
@@ -96,7 +96,7 @@ flowchart TD
     B --> C{YOLOv8 포트홀 탐지}
     C -->|탐지 없음| D([다음 프레임])
     C -->|포트홀 감지| E[바운딩 박스 크롭]
-    E --> F[NPU Worker 호출\nDepth Anything V2]
+    E --> F["NPU Worker 호출 - Depth Anything V2"]
     F --> G{depth_ratio 계산}
     G -->|"< 0.1 얕음"| H[LOW RISK 저위험]
     G -->|"0.1 ~ 0.3 중간"| I[MEDIUM RISK 중위험]
@@ -149,7 +149,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A([매일 자정 UTC]) --> B{"누적 이미지\n100장 이상?"}
+    A([매일 자정 UTC]) --> B{"누적 이미지 100장 이상?"}
     B -->|No| C([대기])
     B -->|Yes| D[기존 모델 백업]
     D --> E[YOLOv8 파인튜닝]
@@ -171,15 +171,15 @@ flowchart LR
 ```mermaid
 graph LR
     subgraph INPUT["depth_ratio 범위"]
-        A["0.0 ~ 0.1\n(얕음)"]
-        B["0.1 ~ 0.3\n(중간)"]
-        C["0.3 이상\n(깊음)"]
+        A["0.0 ~ 0.1 (얕음)"]
+        B["0.1 ~ 0.3 (중간)"]
+        C["0.3 이상 (깊음)"]
     end
 
     subgraph RISK["위험 등급"]
-        D["🟢 LOW\n낮은 위험"]
-        E["🟡 MEDIUM\n중간 위험"]
-        F["🔴 HIGH\n높은 위험"]
+        D["🟢 LOW - 낮은 위험"]
+        E["🟡 MEDIUM - 중간 위험"]
+        F["🔴 HIGH - 높은 위험"]
     end
 
     subgraph ACTION["조치"]
